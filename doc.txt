@@ -1,0 +1,6 @@
+package install:
+tkinter,
+tkinter ttk,
+vosk-api,
+wave.
+  
