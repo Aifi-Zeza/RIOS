@@ -1,6 +1,7 @@
 from vosk import Model,KaldiRecognizer,SetLogLevel
-from pydub import AudioSegment
 import json
+import wave
+import sys
 import os
 
 SetLogLevel(0)
@@ -8,19 +9,22 @@ if not os.path.exists("sdata/model"):
     print("Голосовая модель не найдена")
     exit(1)
 
-_framerate = 1600
-_chanels = 1
+
+wf = wave.open("Song.wav", "rb")
+if wf.getnchannels() != 1 or wf.getsampwidth() != 2 or wf.getcomptype() != "NONE":
+    print("Audio file must be WAV format mono PCM.")
+    sys.exit(1)
 
 _model = Model("sdata/model")
-_rec = KaldiRecognizer(_model,_framerate)
+_rec = KaldiRecognizer(_model,wf.getframerate())
 _rec.SetWords(True)
+_rec.SetPartialWords(True)
 
-_mp3 = AudioSegment.from_mp3('Song.mp3')
-_mp3 = _mp3.set_chanels(_chanels)
-_mp3 = _mp3.set_frame_rate(_framerate)
+while True:
+    data = wf.readframes(4000)
+    if len(data) == 0:
+        break
+    if _rec.AcceptWaveform(data):
+        print(_rec.Result())
 
-_rec.AcceptWaveform(_mp3.raw_data)
-_result = _rec.Result()
-_text = json.loads(_result)["text"]
-with open('data.txt','w') as f:
-    json.dump(_text,f,ensure_ascii=False,indent=4)
+print(_rec.FinalResult())
