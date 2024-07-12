@@ -35,16 +35,25 @@ class RIOS:
         self.window.geometry(self._with+'x'+self._height)
         self.window.iconphoto(True,PhotoImage(file="files/icon.png"))
         self.wintabs.enable_traversal()
+        self.FM = FileManager(100)
 
     def run(self):
-        self._start()
         self._drawApp()
         self._drawDocPanel()
+        self._start()
         self.window.mainloop()
     
 
     def _start(self):
-        self.FM = FileManager(100)
+        for i in range(100):
+            cnf = self.FM.GetElement(self._numcom)
+            if cnf.count('&') > 0:
+                self._createConf(cnf)
+                print(i)
+            else:
+                continue
+        print(self._numcom)
+        
 
     def _drawApp(self): 
         self._frameMain = ttk.Frame(self.wintabs,relief=FLAT,borderwidth=0)
@@ -94,29 +103,38 @@ class RIOS:
         _exitb.place(x=0,y=0)
         _cmdb.place(x=0,y=25)
 
-    def _EnterWindow(self):
-        
+    def _EnterDataWindow(self):
         self._wind = Toplevel(self.window)
+        self._wind.resizable(True,False)
         self._wind.geometry("400x200")
+        self.name = Label(self._wind,text='Name')
         self.Name = Entry(self._wind)
+        self.command = Label(self._wind,text='Command')
         self.Command = Entry(self._wind)
+        self.audcommand = Label(self._wind,text='AudCommand')
+        self.AudCommand = Entry(self._wind)
         Enter = ttk.Button(self._wind,text='Save',command=self._pdmtd)
+        self.name.pack(anchor=N,expand=True,fill=X)
         self.Name.pack(anchor=N,expand=True,fill=X)
+        self.audcommand.pack(anchor=N,expand=True,fill=X)
+        self.AudCommand.pack(anchor=N,expand=True,fill=X)
+        self.command.pack(anchor=N,expand=True,fill=X)
         self.Command.pack(anchor=N,expand=True,fill=X)
         Enter.pack(anchor=N,expand=True,fill=X)
     
 
     def _pdmtd(self):
-        command = self.Name.get() + '&' + self.Command.get()
+        command = self.Name.get() + '&' + self.Command.get()+'&'+self.AudCommand.get()
         self.FM.SetElement(self._numcom,command)
         self.FM.Save()
         self._wind.destroy()
+        self._createConf(self.FM.GetElement(self._numcom))
+    def _createConf(self,cnf = 'error&error'):
         menubut = Canvas(self._sbf,width=int(self._audioFuncSB['width'])-12,height=60,bg='white',highlightbackground='#d3d3d3',highlightcolor='#d3d3d3')
-        cnf = self.FM.GetElement(self._numcom)
         
         cnf = cnf.split('&')
         menubutName = ttk.Label(menubut,justify='left',text=cnf[0])
-        menubutCommand = ttk.Label(menubut,justify='left',text='command: '+cnf[1])
+        menubutCommand = ttk.Label(menubut,justify='left',text='AudCom: '+cnf[2])
     
         menubut.grid(row=self._numcom+1,column=0,sticky=EW)
         menubutName.place(x=5,y=5,width=int(self._audioFuncSB['width'])-17)
@@ -148,7 +166,7 @@ class RIOS:
         p.join()
 
     def _createCommand(self,event):
-        self._EnterWindow()
+        self._EnterDataWindow()
 
 if __name__ == "__main__":
    RIOS().run()
