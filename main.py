@@ -19,6 +19,7 @@ class RIOS:
     _comWidg = []
     _queCom = queue.Queue()
     _DatSize = 200
+    _commandsHistory = []
 
     def __init__(self,w=1280,h=720):
         self._with = str(w)
@@ -37,7 +38,7 @@ class RIOS:
         self._CommandType = ['Console command','Device command','Other']
 
     def _init(self):
-        self.window.title("RIOS-ALPHA v0.0.2")
+        self.window.title("RIOS-ALPHA v0.0.3")
         self.window.geometry(self._with+'x'+self._height)
         self.window.iconphoto(True,PhotoImage(file="files/icon.png"))
         self.wintabs.enable_traversal()
@@ -68,40 +69,61 @@ class RIOS:
 
     def _creataAppInterface(self):
         self._createRootWindow()
+        self._createSeparators()
         self._createDocPanel() 
         self._createPanelDevices()
         self._createPanelAudioCommands()
+        self._createCommandInput()
 
 
 
 
 
     def _createRootWindow(self):
+        self._frameCMenu = ttk.Frame(self.wintabs,relief=FLAT,borderwidth=0)
         self._frameMain = ttk.Frame(self.wintabs,relief=FLAT,borderwidth=0)
-        _frameCmd = ttk.Frame(self.wintabs,relief=FLAT,borderwidth=0,)
-        self._frameMain.pack(fill=Y, expand=True)
-        _frameCmd.pack(fill=X, expand=True)
+        self._frameSettings = ttk.Frame(self.wintabs,relief=FLAT,borderwidth=0)
+        
+        self._frameCMenu.pack(fill=Y, expand=True)
+        self._frameMain.pack(fill=X, expand=True)
+        self._frameSettings.pack(fill=X, expand=True)
 
-        self.wintabs.add(self._frameMain, text="Main", compound=LEFT)
-        self.wintabs.add(_frameCmd, text="cmd",compound=LEFT)
+        self.wintabs.add(self._frameMain, text="Main",compound=LEFT)
+        self.wintabs.add(self._frameCMenu, text="Menu", compound=LEFT)
+        self.wintabs.add(self._frameSettings, text="Settings",compound=LEFT)
 
+    def _createSeparators(self):
+        self.menuPanel = Canvas(self._frameCMenu,width=(int(self._with)/2.5+60),height=int(self._height)-250,bg='red')
+        self.menuPanel.grid(row=0,column=2,sticky=NSEW)
     def _createPanelDevices(self):
-        _maindFrame = ttk.Frame(self._frameMain,height=int(self._height)-250,width=int(self._with)/1.8)
-        _threeObjects = Canvas(self._frameMain,height=int(self._height)-250,width=200,bg='red')
-
-        _threeObjects.grid(row=0,column=0,sticky=NSEW)
-        _maindFrame.grid(row=0,column=1,sticky=NSEW)
+        _deviceScrollBar = ttk.Scrollbar(self._frameCMenu,orient="vertical")
+        self._DeviceBarObject = Canvas(self._frameCMenu,width=(int(self._with)/4),height=int(self._height)-250,yscrollcommand=_deviceScrollBar.set,bg='#d3d3d3',border=0)
+        self._DevicePlate = Frame(self._DeviceBarObject,background='blue',border=0,bg='#d3d3d3',highlightbackground='#d3d3d3',highlightcolor='#d3d3d3') 
+        self._DeviceBarObject.create_window((4,4),window=self._DevicePlate,anchor=NE)
+        _deviceScrollBar.configure(command=self._DeviceBarObject.yview)
+        _deviceScrollBar.grid(row=0,column=1,sticky=NS)
+        self._DeviceBarObject.grid(row=0,column=0,sticky=NSEW)
+        self._DeviceBarObject.update_idletasks()
+        self._DeviceBarObject.configure(scrollregion=self._DevicePlate.bbox('all'))
+        menubutv = Canvas(self._DevicePlate,width=int(self._DeviceBarObject['width'])-12,height=60,bg='white',highlightbackground='#d3d3d3',highlightcolor='#d3d3d3')
+        menubutv.grid(row=self._numcom+1,column=0,sticky=EW)
 
     def _createPanelAudioCommands(self):
-        _commandScrollBar = ttk.Scrollbar(self._frameMain,orient="vertical")
-        self._CommandBarObject = Canvas(self._frameMain,width=(int(self._with)/4),height=int(self._height)-250,yscrollcommand=_commandScrollBar.set,bg='#d3d3d3',border=0)
+        _commandScrollBar = ttk.Scrollbar(self._frameCMenu,orient="vertical")
+        self._CommandBarObject = Canvas(self._frameCMenu,width=(int(self._with)/4),height=int(self._height)-250,yscrollcommand=_commandScrollBar.set,bg='#d3d3d3',border=0)
         self._CommandPlate = Frame(self._CommandBarObject,background='blue',border=0,bg='#d3d3d3',highlightbackground='#d3d3d3',highlightcolor='#d3d3d3') 
         self._CommandBarObject.create_window((4,4),window=self._CommandPlate,anchor=NW)
         _commandScrollBar.configure(command=self._CommandBarObject.yview)
-        _commandScrollBar.grid(row=0,column=2,sticky=NS)
-        self._CommandBarObject.grid(row=0,column=3,sticky=NSEW)
+        _commandScrollBar.grid(row=0,column=3,sticky=NS)
+        self._CommandBarObject.grid(row=0,column=4,sticky=NSEW)
         self._CommandBarObject.update_idletasks()
         self._CommandBarObject.configure(scrollregion=self._CommandPlate.bbox('all'))
+    
+    def _createCommandInput(self):
+        _commandHistoryVar = Variable(value=self._commandsHistory)
+        _commandPanel = Listbox(self._frameCMenu,listvariable=_commandHistoryVar,width=self._with,height=250,relief=FLAT,foreground='#d3d3d3',)
+        _commandPanel.place(x=0,y=int(self._height)-250)
+
         
     def _createDocPanel(self):
         self.mc = Canvas(self.winbutns,background='#ebfffe',width=25,height=self._height,border=0)
@@ -162,7 +184,7 @@ class RIOS:
         
     def _deleteConf(self,position):
         self._comWidg[position].destroy()
-        self.FM.SetElement(position,'ready')
+        self.FM.SetElement(position,'ready')    
         self.FM.Save()
         self._queCom.put(position)
             
