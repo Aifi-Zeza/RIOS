@@ -25,7 +25,7 @@ class RIOS:
         self._with = str(w)
         self._height = str(h)
         self.window = Tk()
-        self.window.resizable(False,False)
+        #self.window.resizable(False,False)
         
         self.mainframe = ttk.Frame(self.window,height=self._height,width=self._with)
         self.mainframe.pack(fill=BOTH,expand=True,anchor=SW)
@@ -38,7 +38,7 @@ class RIOS:
         self._CommandType = ['Console command','Device command','Other']
 
     def _init(self):
-        self.window.title("RIOS-ALPHA v0.0.3")
+        self.window.title("RIOS-ALPHA v0.0.3v ")
         self.window.geometry(self._with+'x'+self._height)
         self.window.iconphoto(True,PhotoImage(file="files/icon.png"))
         self.wintabs.enable_traversal()
@@ -55,7 +55,7 @@ class RIOS:
     def _start(self):
         self._initComPanel()
 
-    def _initComPanel(self):
+    def _initComPanel(self): 
         for i in range(self._DatSize):
             cnf = self.FM.GetElement(self._numcom)
             if cnf.count('&') > 0:
@@ -120,9 +120,10 @@ class RIOS:
         self._CommandBarObject.configure(scrollregion=self._CommandPlate.bbox('all'))
     
     def _createCommandInput(self):
-        _commandHistoryVar = Variable(value=self._commandsHistory)
-        _commandPanel = Listbox(self._frameCMenu,listvariable=_commandHistoryVar,width=self._with,height=250,relief=FLAT,foreground='#d3d3d3',)
-        _commandPanel.place(x=0,y=int(self._height)-250)
+        _ccanvas = Canvas(self._frameCMenu,width=self._with,height=250)
+        _ccanvas.place(x=0,y=int(self._height)-250)
+        _commandFrame = ConsoleFrame(_ccanvas,self._with,11)
+        _commandFrame.pack()
 
         
     def _createDocPanel(self):
