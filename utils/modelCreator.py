@@ -1,70 +1,126 @@
 import os
 import numpy as np
 import librosa
-from tensorflow.python.keras import layers, models
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from sklearn.model_selection import train_test_split
+from torch.utils.data import Dataset, DataLoader
+import joblib  # Для сохранения модели
 
 # Параметры
 SAMPLE_RATE = 22050
-DURATION = 1  # Длительность аудиофайла в секундах
-NUM_SAMPLES = SAMPLE_RATE * DURATION
+SEGMENT_DURATION = 2  # Длительность сегмента звука для анализа (в секундах)
+SEGMENT_SAMPLES = SAMPLE_RATE * SEGMENT_DURATION
+N_MFCC = 16  # Количество MFCC
+BATCH_SIZE = 16
+EPOCHS = 60
+LEARNING_RATE = 0.001
 
-def load_data(data_dir):
-    labels = []
-    features = []
+# Функция для деления аудио на сегменты и извлечения MFCC
+def extract_mfcc_from_segments(file_path):
+    audio, _ = librosa.load(file_path, sr=SAMPLE_RATE)
+    num_samples = len(audio)
 
-    # Загрузка файлов для "wake" слова
-    for filename in os.listdir(os.path.join(data_dir, 'wake')):
-        file_path = os.path.join(data_dir, 'wake', filename)
-        try:
-            signal, sr = librosa.load(file_path, sr=SAMPLE_RATE)
-            # Делим сигнал на фрагменты
-            for start in range(0, len(signal), NUM_SAMPLES):
-                end = start + NUM_SAMPLES
-                if end <= len(signal):
-                    features.append(signal[start:end])
-                    labels.append(1)  # "wake" соответствует 1
-        except Exception as e:
-            print(f"Ошибка загрузки {file_path}: {e}")
+    segments = []
+    for start in range(0, num_samples, SEGMENT_SAMPLES):
+        end = min(start + SEGMENT_SAMPLES, num_samples)
+        segment = audio[start:end]
 
-    # Загрузка файлов для "not wake"
-    for filename in os.listdir(os.path.join(data_dir, 'not_wake')):
-        file_path = os.path.join(data_dir, 'not_wake', filename)
-        try:
-            signal, sr = librosa.load(file_path, sr=SAMPLE_RATE)
-            # Делим сигнал на фрагменты
-            for start in range(0, len(signal), NUM_SAMPLES):
-                end = start + NUM_SAMPLES
-                if end <= len(signal):
-                    features.append(signal[start:end])
-                    labels.append(0)  # "not wake" соответствует 0
-        except Exception as e:
-            print(f"Ошибка загрузки {file_path}: {e}")
+        if len(segment) < SEGMENT_SAMPLES:
+            silence = np.zeros(SEGMENT_SAMPLES - len(segment))
+            segment = np.concatenate((segment, silence))
 
-    return np.array(features), np.array(labels)
+        mfccs = librosa.feature.mfcc(y=segment, sr=SAMPLE_RATE, n_mfcc=N_MFCC)
+        segments.append(np.mean(mfccs.T, axis=0))
 
-# Подготовка данных
-data_dir = 'dataset'
-X, y = load_data(data_dir)
-X = X.reshape((-1, NUM_SAMPLES, 1))  # Формат для CNN
+    return segments
 
-# Создание модели
-model = models.Sequential([
-    layers.Conv1D(16, 5, activation='relu', input_shape=(NUM_SAMPLES, 1)),
-    layers.MaxPooling1D(pool_size=2),
-    layers.Conv1D(32, 5, activation='relu'),
-    layers.MaxPooling1D(pool_size=2),
-    layers.Flatten(),
-    layers.Dense(64, activation='relu'),
-    layers.Dense(1, activation='sigmoid')  # Бинарная классификация
-])
+# Класс Dataset для PyTorch
+class AudioDataset(Dataset):
+    def __init__(self, data_dir):
+        self.X = []
+        self.y = []
+        loaded_files = 0
+        for label in ["wake", "not_wake"]:
+            folder = os.path.join(data_dir, label)
+            for filename in os.listdir(folder):
+                print('загрузка файла под номером' + " " + str(loaded_files))
+                loaded_files += 1
+                if filename.endswith('.mp3'):
+                    file_path = os.path.join(folder, filename)
+                    mfccs_list = extract_mfcc_from_segments(file_path)
+                    self.X.extend(mfccs_list)
+                    self.y.extend([1 if label == "wake" else 0] * len(mfccs_list))
+                    
+        self.X = np.array(self.X)
+        self.y = np.array(self.y)
+    
+    def __len__(self):
+        return len(self.X)
+    
+    def __getitem__(self, idx):
+        return torch.tensor(self.X[idx], dtype=torch.float32), torch.tensor(self.y[idx], dtype=torch.long)
 
-# Компиляция модели
-model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+# Создание модели LSTM
+class LSTMModel(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(LSTMModel, self).__init__()
+        self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True)
+        self.fc = nn.Linear(hidden_size, output_size)
 
-# Обучение модели
-model.fit(X, y, epochs=10, batch_size=32, validation_split=0.2)
+    def forward(self, x):
+        x = x.unsqueeze(1)  # Добавление размерности для последовательности
+        out, _ = self.lstm(x)
+        out = out[:, -1, :]  # Используем выход последнего временного шага
+        out = self.fc(out)
+        return out
 
-# Сохранение модели
-model.save('wake_word_model.h5')
+# Основная функция для обучения модели
+def train_classifier(data_dir):
+    print("Загрузка данных...")
+    dataset = AudioDataset(data_dir)
+    train_size = int(0.8 * len(dataset))
+    test_size = len(dataset) - train_size
+    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
 
-print("Модель обучена и сохранена.")
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+
+    model = LSTMModel(input_size=N_MFCC, hidden_size=128, output_size=2)  # 2 класса
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+
+    print("Обучение модели...")
+    for epoch in range(EPOCHS):
+        model.train()
+        for inputs, labels in train_loader:
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+    # Оценка модели
+    model.eval()
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+    accuracy = correct / total
+    print(f"\nРезультаты обучения модели:\n{'-'*30}")
+    print(f"Точность: {accuracy:.2f}")
+
+    # Сохранение модели
+    torch.save(model.state_dict(), 'wake_word_classifier.pth')
+    print(f"Модель сохранена в 'wake_word_classifier.pth'\n{'-'*30}")
+
+# Запуск
+if __name__ == "__main__":
+    data_directory = 'dataset'  # Укажите путь к вашим данным
+    train_classifier(data_directory)
