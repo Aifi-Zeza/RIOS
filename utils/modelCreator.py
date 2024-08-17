@@ -4,17 +4,17 @@ import librosa
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset, DataLoader
-import joblib  # Для сохранения модели
+
 
 # Параметры
 SAMPLE_RATE = 22050
-SEGMENT_DURATION = 2  # Длительность сегмента звука для анализа (в секундах)
+SEGMENT_DURATION = 1.25  # Длительность сегмента звука для анализа (в секундах)
 SEGMENT_SAMPLES = SAMPLE_RATE * SEGMENT_DURATION
-N_MFCC = 16  # Количество MFCC
-BATCH_SIZE = 16
-EPOCHS = 60
+SEGMENT_SAMPLES = int(SEGMENT_SAMPLES)
+N_MFCC = 10  # Количество MFCC
+BATCH_SIZE = 32
+EPOCHS = 30
 LEARNING_RATE = 0.001
 
 # Функция для деления аудио на сегменты и извлечения MFCC
@@ -117,10 +117,11 @@ def train_classifier(data_dir):
     print(f"Точность: {accuracy:.2f}")
 
     # Сохранение модели
-    torch.save(model.state_dict(), 'wake_word_classifier.pth')
-    print(f"Модель сохранена в 'wake_word_classifier.pth'\n{'-'*30}")
+    torch.save(model.state_dict(), classifier_directory+'wake_word_classifier.pth')
+    print(f"Модель сохранена в {classifier_directory}\n{'-'*30}")
 
 # Запуск
 if __name__ == "__main__":
     data_directory = 'dataset'  # Укажите путь к вашим данным
+    classifier_directory = 'audio/wake_model/'
     train_classifier(data_directory)
