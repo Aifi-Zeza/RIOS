@@ -10,8 +10,10 @@ There is nothing here, as the project is in Alpha state.
 
 #### Technologies used:
 * `Python-3.11`
-* `Tkinter`
+* `tkinter`
 * `Vosk-api`
+* `pytorch`
+  
 
 
 ## Ru-ru:
@@ -25,4 +27,4 @@ There is nothing here, as the project is in Alpha state.
 * `Python-3.11`
 * `Tkinter`
 * `Vosk-api`
-
+* `pytorch`
