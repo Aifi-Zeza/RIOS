@@ -1,7 +1,8 @@
 from tkinter import *
 from tkinter import ttk
 from graph import *
-
+from ModuleManager import ModuleManager
+from Extensions import LabelButton
 class RIOS:
     def __init__(self, w=1280, h=720):
         self._width = str(w)
@@ -14,7 +15,7 @@ class RIOS:
         
         self.winbutns = ttk.Frame(self.mainframe, height=self._height, width=25)
         self.wintabs = ttk.Notebook(self.mainframe, width=int(self._width) - 25, height=self._height)
-        self.winbutns.place(x=0, y=0)
+        self.winbutns.place(x=0, y=0)   
         self.wintabs.place(x=25, y=0)
         
         self.opened_images = None
