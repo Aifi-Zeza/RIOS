@@ -1,30 +1,48 @@
 from vosk import Model,KaldiRecognizer,SetLogLevel
+import queue
 import json
-import wave
+import sounddevice as sd
 import sys
 import os
 
 SetLogLevel(0)
-if not os.path.exists("sdata/model"):
+if not os.path.exists("audio/model"):
     print("Голосовая модель не найдена")
     exit(1)
 
 
-wf = wave.open("Song.wav", "rb")
-if wf.getnchannels() != 1 or wf.getsampwidth() != 2 or wf.getcomptype() != "NONE":
-    print("Audio file must be WAV format mono PCM.")
-    sys.exit(1)
+_deviceInf = sd.query_devices(sd.default.device[0],'input')
+_samlprate = int(_deviceInf['default_samplerate'])
+print(sd.default.device[0],_deviceInf)
+_queue = queue.Queue()
 
-_model = Model("sdata/model")
-_rec = KaldiRecognizer(_model,wf.getframerate())
-_rec.SetWords(True)
-_rec.SetPartialWords(True)
 
-while True:
-    data = wf.readframes(4000)
-    if len(data) == 0:
-        break
-    if _rec.AcceptWaveform(data):
-        print(_rec.Result())
+def _recCallbk(indata,frames,time,status):
+    if status:
+        print(status,file=sys.stderr)
+    _queue.put(bytes(indata))
 
-print(_rec.FinalResult())
+_model = Model('audio/model')
+_recognizer = KaldiRecognizer(_model,_samlprate)
+_recognizer.SetWords(False)
+
+try: 
+    with sd.RawInputStream(dtype='int16',channels=1,callback=_recCallbk):
+        while True:
+            _data = _queue.get()
+            if _recognizer.AcceptWaveform(_data):
+                _recognizerRes = _recognizer.Result()
+
+                _resultDict = json.loads(_recognizerRes)
+                if not _resultDict.get('text','') == "":
+                    print(_recognizerRes)
+                else:
+                    print('no input snd') 
+except KeyboardInterrupt:
+    print('====> Record Finish') 
+except Exception as e:
+    print(str(e))
+                           
+                           
+                           
+                           
