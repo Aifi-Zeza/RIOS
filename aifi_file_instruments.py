@@ -1,5 +1,5 @@
 from ast import literal_eval
-from aifi_fox_crypto import Crypt
+
 class FileManager:
     _bufferStr = None
     _buffer = []
@@ -14,10 +14,10 @@ class FileManager:
         self._pswrd = pswrd
         self._extension = extension
         self._crypt = crypt
-        self._paramsNum = paramsnum
+        self.dataLenth = paramsnum
         self._Dev_ReOpen()
-        self.cr = Crypt(self._pswrd,"old")
         
+
         
         
     def GetElement(self,index):
@@ -32,7 +32,7 @@ class FileManager:
     def _Dev_ReOpen(self):
         self._bufferStr = self._readfile(self._filename+'.'+self._extension)
         if (self._bufferStr == None) or (self._bufferStr == "New File"):
-            for i in range(self._paramsNum):
+            for i in range(self.dataLenth):
                self._buffer.append('ready')
             self.Save()
             

@@ -5,8 +5,8 @@ from ModuleManager import ModuleManager
 from Extensions import LabelButton
 class RIOS:
     def __init__(self, w=1280, h=720):
-        self._width = str(w)
-        self._height = str(h)
+        self._width = w 
+        self._height = h
         self.window = Tk()
         
         # Создание основных фреймов
@@ -23,11 +23,10 @@ class RIOS:
 
     def _init(self):
         """Инициализация основного окна."""
-        self.window.title("RIOS-ALPHA v0.0.3v ")
+        self.window.title("RIOS-ALPHA v0.0.4v ")
         self.window.geometry(f"{self._width}x{self._height}")
         self.window.iconphoto(True, PhotoImage(file="files/icon.png"))
         self.wintabs.enable_traversal()
-
     def run(self):
         """Запуск главного цикла приложения."""
         self._createAppInterface()
@@ -41,20 +40,22 @@ class RIOS:
 
     def _createRootWindow(self):
         """Создание основных фреймов для вкладок."""
-        self._frameCMenu = ttk.Frame(self.wintabs, relief=FLAT, borderwidth=0)
+        self._frameComMenu = ttk.Frame(self.wintabs, relief=FLAT, borderwidth=0)
         self._frameMain = ttk.Frame(self.wintabs, relief=FLAT, borderwidth=0)
         self._frameSettings = ttk.Frame(self.wintabs, relief=FLAT, borderwidth=0)
 
         # Добавление фреймов во вкладки
         self.wintabs.add(self._frameMain, text="Main", compound=LEFT)
-        self.wintabs.add(self._frameCMenu, text="Menu", compound=LEFT)
+        self.wintabs.add(self._frameComMenu, text="Menu", compound=LEFT)
         self.wintabs.add(self._frameSettings, text="Settings", compound=LEFT)
+        self._testmodules()
 
 
     def createFrame(self):
         """Создание фрейма для управления аудиокомандами."""
-        self.tf = audioPanel(self._frameCMenu, self.window, self._width, self._height)
+        self.tf = audioPanel(self._frameComMenu, self.window, self._width, self._height)
         self.tf.start()
+        self.mf = mainPanel(self._frameMain,self.window,self._width, self._height)
 
     def _createDocPanel(self):
         """Создание панели инструментов с кнопками."""
@@ -65,7 +66,7 @@ class RIOS:
         
         self.mc.place(x=0, y=0)
         _cmdb.bind('<Button-1>', self.tf._cmd)
-        _exitb.bind('<Button-1>', self.tf._createCommand)
+        _exitb.bind('<Button-1>', self.tf._EnterComDataWindow)
 
         _exitb.place(x=0, y=0)
         _cmdb.place(x=0, y=25)
@@ -73,7 +74,7 @@ class RIOS:
     def _testmodules(self):
         """Тестирование и загрузка модулей."""
         mm = ModuleManager(self.wintabs)
-        mm.load_module('modules/file.rpycm')
+        #mm.load_module('modules/file.rpycm')
 
 if __name__ == "__main__":
     RIOS().run()

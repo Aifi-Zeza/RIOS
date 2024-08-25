@@ -3,16 +3,39 @@ from tkinter import ttk
 from types import *
 from PIL import Image 
 from PIL import ImageTk as itk
-from PIL import ImageEnhance
+import subprocess
+import threading
+from nnm import *
 from Constructs import *
 
 from tkinter import ttk
 
+class LabelImage(ttk.Label):
+    def __init__(self, master, path, size, anchor=S,sizeY = None, **kwargs):
+        self.path = path
+        self.sizeX = size
+        self.sizeY = sizeY
+        super().__init__(master=master, **kwargs)
+        self['anchor'] = anchor
+
+        # Загрузка основного изображения
+        self.defaultImage = self.load_image(path)
+        self['image'] = self.defaultImage
+
+    def load_image(self, path):
+        image = Image.open(path)
+        if self.sizeY != None:
+            image = image.resize((self.sizeX, self.sizeY))
+        else:
+            image = image.resize((self.sizeX, self.sizeX))     
+        return itk.PhotoImage(image)
+
 
 class LabelButton(ttk.Label):
-    def __init__(self, path, size, master, position=0, anchor='s', **kwargs):
+    def __init__(self, path, size, master, position=0, anchor=S,sizeY = None, **kwargs):
         self.path = path
-        self.size = size
+        self.sizeX = size
+        self.sizeY = sizeY
         self.position = position
         super().__init__(master=master, **kwargs)
         self['anchor'] = anchor
@@ -29,7 +52,10 @@ class LabelButton(ttk.Label):
 
     def load_image(self, path):
         image = Image.open(path)
-        image = image.resize((self.size, self.size))
+        if self.sizeY != None:
+            image = image.resize((self.sizeX, self.sizeY))
+        else:
+            image = image.resize((self.sizeX, self.sizeX))     
         return itk.PhotoImage(image)
 
     def create_dimmer_image(self, image, opacity):
@@ -59,21 +85,19 @@ class LabelButton(ttk.Label):
     def on_leave(self, e):
         self['image'] = self.defaultImage  # возвращаем оригинальное изображение
 
-# Пример использования в приложении tkinter
-if __name__ == "__main__":
-    root = Tk()
-    button = LabelButton("files/icons/exit.png", 100, root)  # Укажите правильный размер
-    button.pack()
-    root.mainloop()
 
 class ComboboxFrame:
     """Create a frame with combobox"""
     currentType = 0
-    def __init__(self,master,variants = {'options':['1','2','3'],'lvar2':[],'lvar3':[[],[]]}):
+    def __init__(self,master,devices,variants = {'options':['1','2','3'],'lvar2':[],'lvar3':[[],[]]}):
         self.opt = variants['options']
         self.vars2 = variants['lvar2']
         self.vars3_1 = variants['lvar3'][0]
         self.vars3_2 = variants['lvar3'][1]
+        self.devices = True if len(devices) > 0 else False 
+
+        self.bvc = master.register(base_validate_input)
+        self.svc = master.register(spec_validate_input)
         
 
         self.mainframe = Frame(master)
@@ -102,51 +126,56 @@ class ComboboxFrame:
             self.variant2.destroy()
             self.variant3.destroy()
             self.currentType = 0
-            self.variant1.object['entry'] = Entry(self.mainframe)
+            self.variant1.object['entry'] = Entry(self.mainframe,validate="key", validatecommand=(self.svc, '%P'))
             self.variant1.object['label'] = Label(self.mainframe,text='Command')
             self.variant1.object['label'].pack(anchor=N,expand=True,fill=X)
             self.variant1.object['entry'].pack(anchor=N,expand=True,fill=X)
-        if(switch.case(self.opt[1])):
+        elif self.devices:
+            if(switch.case(self.opt[1])):
+                self.variant1.destroy()
+                self.variant3.destroy()
+                self.currentType = 1
+                self.variant2.object['entry'] = Entry(self.mainframe,validate="key", validatecommand=(self.svc, '%P'))
+                self.variant2.object['label1'] = Label(self.mainframe,text='Device')
+                self.variant2.object['label0'] = Label(self.mainframe,text='Command')
+                self.variant2.object['combobox'] = ttk.Combobox(self.mainframe,values=self.vars2, state="readonly")
+                self.variant2.object['combobox'].current(0)
+                self.variant2.object['label1'].pack(anchor=N,expand=True,fill=X)
+                self.variant2.object['combobox'].pack(anchor=N,expand=True,fill=X)
+                self.variant2.object['label0'].pack(anchor=N,expand=True,fill=X)
+                self.variant2.object['entry'].pack(anchor=N,expand=True,fill=X)
+            if(switch.case(self.opt[2])):
+                self.variant1.destroy()
+                self.variant2.destroy()
+                self.currentType = 2
+                self.variant3.object['label0'] = Label(self.mainframe,text='Command')
+                self.variant3.object['label1'] = Label(self.mainframe,text='Device')
+                self.variant3.object['combobox1'] = ttk.Combobox(self.mainframe,values=self.vars3_1, state="readonly")
+                self.variant3.object['combobox1'].current(0)
+                self.variant3.object['combobox2'] = ttk.Combobox(self.mainframe,values=self.vars3_2, state="readonly")
+                self.variant3.object['combobox2'].current(0)  
+                self.variant3.object['label1'].pack(anchor=N,expand=True,fill=X)
+                self.variant3.object['combobox1'].pack(anchor=N,expand=True,fill=X)
+                self.variant3.object['label0'].pack(anchor=N,expand=True,fill=X)
+                self.variant3.object['combobox2'].pack(anchor=N,expand=True,fill=X)
+        else:
             self.variant1.destroy()
-            self.variant3.destroy()
-            self.currentType = 1
-            self.variant2.object['entry'] = Entry(self.mainframe)
-            self.variant2.object['label1'] = Label(self.mainframe,text='Device')
-            self.variant2.object['label0'] = Label(self.mainframe,text='Command')
-            self.variant2.object['combobox'] = ttk.Combobox(self.mainframe,values=self.vars2, state="readonly")
-            self.variant2.object['combobox'].current(0)
-            self.variant2.object['label1'].pack(anchor=N,expand=True,fill=X)
-            self.variant2.object['combobox'].pack(anchor=N,expand=True,fill=X)
+            self.currentType = 3
+            self.variant2.object['label0'] = Label(self.mainframe,text='Devices not Found')
             self.variant2.object['label0'].pack(anchor=N,expand=True,fill=X)
-            self.variant2.object['entry'].pack(anchor=N,expand=True,fill=X)
-        if(switch.case(self.opt[2])):
-            self.variant1.destroy()
-            self.variant2.destroy()
-            self.currentType = 2
-            self.variant3.object['label0'] = Label(self.mainframe,text='Command')
-            self.variant3.object['label1'] = Label(self.mainframe,text='Device')
-            self.variant3.object['combobox1'] = ttk.Combobox(self.mainframe,values=self.vars3_1, state="readonly")
-            self.variant3.object['combobox1'].current(0)
-            self.variant3.object['combobox2'] = ttk.Combobox(self.mainframe,values=self.vars3_2, state="readonly")
-            self.variant3.object['combobox2'].current(0)  
-            self.variant3.object['label1'].pack(anchor=N,expand=True,fill=X)
-            self.variant3.object['combobox1'].pack(anchor=N,expand=True,fill=X)
-            self.variant3.object['label0'].pack(anchor=N,expand=True,fill=X)
-            self.variant3.object['combobox2'].pack(anchor=N,expand=True,fill=X)
     def get(self):
         switch = Switch(self.currentType)
         if switch.case(0):
             return self.variant1.object['entry'].get()
         elif switch.case(1):
             return self.variant2.object['entry'].get() + '`' + self.variant2.object['combobox'].get()
+        elif switch.case(2):
+            return self.variant3.object['combobox1'].get() + '`' + self.variant3.object['combobox2'].get()
         elif switch.case(3):
-            return self.variant2.object['combobox1'].get() + '~' + self.variant2.object['combobox2'].get()
+            return 'devnotfou'
         else:
-            return 'error'
+            return 'error cf'
         
-
-import subprocess
-import threading
 
 class ConsoleFrame:
     def __init__(self, master,widtth,heightt):
@@ -213,18 +242,20 @@ class ConsoleFrame:
 
 
 class ElementPanel(Frame):
-    def __init__(self, master, width, height,queue,filemanadger, scrollbar_position='right',):
+    def __init__(self, master, width, height,queue,filemanadger,EnterDataMethod, scrollbar_position='right',):
         super().__init__(master, bg='#d3d3d3')
         self._width = width
         self._height = height
         self._queue = queue
         self.FM = filemanadger
         self.scrollbar_position = scrollbar_position
+        self.method = EnterDataMethod
 
         self.cePosition = self.FM.dataLenth + 2
+        print(self.cePosition)
         # Списки для хранения конфигов и виджетов
         self.elementList = []
-        self._numcom = 0
+        self._numcom = 1
 
         self._createPanel()
         self._createAddElement()
@@ -233,9 +264,11 @@ class ElementPanel(Frame):
         element = Canvas(self._CommandPlate, width=int(self._CommandBarObject['width']) - 12, height=60,
                             bg='white', highlightbackground='#d3d3d3', highlightcolor='#d3d3d3')
         
-        addbuton = LabelButton("files/icons/exit.png", 20, element)
+        addbuton = LabelButton("files/icons/exit.png", size=int(self._CommandBarObject['width']) - 16, master=element,sizeY=56)
         element.grid(row=self.cePosition, column=0, sticky=EW)
-        addbuton.place(x=int(self._CommandBarObject['width']) - 35, y=5)
+        addbuton.place(x=2, y=2)
+        addbuton.bind('<Button-1>',self.method)
+
         self._CommandBarObject.update_idletasks()
         self._CommandBarObject.configure(scrollregion=self._CommandPlate.bbox('all'))
 
@@ -265,6 +298,7 @@ class ElementPanel(Frame):
         self.FM.SetElement(datpos, info)
         self.FM.Save()
         self._Create(datpos, self.FM.GetElement(datpos))
+    
     def _Create(self, datpos, shrinkedData='error&error'):
         element = Canvas(self._CommandPlate, width=int(self._CommandBarObject['width']) - 12, height=60,
                             bg='white', highlightbackground='#d3d3d3', highlightcolor='#d3d3d3')
@@ -289,3 +323,39 @@ class ElementPanel(Frame):
         self.FM.SetElement(position, 'ready')
         self.FM.Save()
         self._queue.put(position)
+
+class aidioCommandExecuter:
+    def __init__(self,filemanadger,audcommands):
+        self.FM = filemanadger
+        self.acom = audcommands
+        self.voskr = voskRecognition(self.getCommand)
+        self.wwp = WakeWordProgramm(self.voskr.record)
+        self.voskr.unresult = self.wwp.start
+        self.bertp = BERTPrediction()
+
+    def getCommand(self,text):
+        self.bertp.basesentece(text)
+        for acomakey in self.acom:
+            if self.bertp.get_cosine_similarity(acomakey):
+                print(self.acom[acomakey])
+            else:
+                print('loss')
+
+    def start(self):
+        self.wwp.start()
+
+def base_validate_input(input_text,):
+    # Проверяем, содержит ли вводимый текст запрещённые символы
+    forbidden_characters = "0123456789!@#$%^&*()`~"
+    for char in forbidden_characters:
+        if char in input_text:
+            return False
+    return True
+
+def spec_validate_input(input_text):
+    # Проверяем, содержит ли вводимый текст запрещённые символы
+    forbidden_characters = "&`"
+    for char in forbidden_characters:
+        if char in input_text:
+            return False
+    return True

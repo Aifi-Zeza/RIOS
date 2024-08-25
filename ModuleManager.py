@@ -2,7 +2,7 @@ import sys
 import os
 import marshal
 import tkinter.ttk as ttk
-from tkinter import FLAT,Y,LEFT
+from tkinter import FLAT,BOTH,LEFT
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
         
 class inModule():
@@ -20,6 +20,7 @@ class ModuleManager:
         self.master = master
         self.modules = []
         module_frame = ttk.Frame(self.master,relief=FLAT,borderwidth=0)
+        self.master.add(module_frame, text='Module Manager',compound=LEFT)
 
     def load_modules(self,path_to_module = []):
         for path in path_to_module:
@@ -34,7 +35,7 @@ class ModuleManager:
         if 'thisModule' in module_namespace:
             module_instance = module_namespace['Module']()
             frame = ttk.Frame(self.master,relief=FLAT,borderwidth=0)
-            frame.pack(fill=Y, expand=True)
+            frame.pack(fill=BOTH, expand=True)
             module_instance.inModule.master = frame  # Установка master
             self.modules.append(module_instance)  # Запуск инициализации модуля
             module_namespace = None
