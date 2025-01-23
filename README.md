@@ -28,3 +28,4 @@ There is nothing here, as the project is in Alpha state.
 * `Tkinter`
 * `Vosk-api`
 * `pytorch`
+*
