@@ -25,7 +25,7 @@ There is nothing here, as the project is in Alpha state.
 Здесь ничего нет, так как проект находится в Alpha состоянии.
 #### Используемые технологии:
 * `Python-3.11`
-* `Tkinter`
+* `Tkinter`-временно
 * `Vosk-api`
 * `pytorch`
-*
+* `PySide/PyQt(Qt)`
